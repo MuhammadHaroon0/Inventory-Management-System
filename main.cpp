@@ -113,7 +113,7 @@ int main()
             break;
         }
         }
-        cout<<"\n\n";
+        cout<<endl<<endl;
     }
     return 0;
 }
