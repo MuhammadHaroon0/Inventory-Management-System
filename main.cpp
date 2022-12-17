@@ -18,8 +18,8 @@ struct InventoryItem
     Allocated_to Allocated_to;
 };
 
-void addInventoryItems();
-void viewInventoryItems();
+void addInventoryItems(fstream &,string);
+void viewInventoryItems(fstream &,string);
 void searchInventoryItems();
 void editInventoryItems();
 void deleteInventoryItems();
@@ -63,50 +63,50 @@ int main()
 
         switch(selection)
         {
-                            /***ADD INVENTORY ITEMS***/
+        /***ADD INVENTORY ITEMS***/
         case 1:
         {
-              addInventoryItems();
-              break;
-        }
-
-                            /***VIEW INVENTORY ITEMS***/
-        case 2:
-        {
-            viewInventoryItems();
+            addInventoryItems(inventoryFile,nameOfFile);
             break;
         }
-                            /***SEARCH INVENTORY ITEMS***/
+
+        /***VIEW INVENTORY ITEMS***/
+        case 2:
+        {
+            viewInventoryItems(inventoryFile,nameOfFile);
+            break;
+        }
+        /***SEARCH INVENTORY ITEMS***/
         case 3:
         {
             searchInventoryItems();
             break;
         }
-                            /***EDIT INVENTORY ITEMS***/
+        /***EDIT INVENTORY ITEMS***/
         case 4:
         {
             editInventoryItems();
             break;
         }
-                            /***DELETE INVENTORY ITEMS***/
+        /***DELETE INVENTORY ITEMS***/
         case 5:
         {
             deleteInventoryItems();
             break;
         }
-                            /***ASSIGN INVENTORY ITEMS TO FACULTY MEMBERS***/
+        /***ASSIGN INVENTORY ITEMS TO FACULTY MEMBERS***/
         case 6:
         {
             assignInventoryItems();
             break;
         }
-                            /***RETRIEVE INVENTORY ITEMS FROM FACULTY MEMBERS***/
+        /***RETRIEVE INVENTORY ITEMS FROM FACULTY MEMBERS***/
         case 7:
         {
             retrieveInventoryItems();
             break;
         }
-                            /***VIEW LIST OF FACULTY MEMBERS WHO BORROWED ITEMS***/
+        /***VIEW LIST OF FACULTY MEMBERS WHO BORROWED ITEMS***/
         case 8:
         {
             viewFacultyListofBorrowedItems();
@@ -118,9 +118,55 @@ int main()
     return 0;
 }
 
-void addInventoryItems(){};
+void addInventoryItems(fstream &inventoryFile,string nameOfFile)
+{
+    InventoryItem addItem;
+    cout<<"\nEnter Name of new Inventory Item:";
+    cin.ignore();
+    cin.getline(addItem.Name,50);
 
-void viewInventoryItems(){};
+    cout<<"\nEnter Item ID of new Inventory Item:";
+    cin>>addItem.Item_ID;
+
+    cout<<"\nEnter category of new Inventory Item:";
+    cin.ignore();
+    cin.getline(addItem.Category,50);
+
+    cout<<"\nEnter count of number new Inventory Items to add:";
+    cin>>addItem.Item_count;
+
+            /****OPENING FILE FOR ADDING INVENTORY ITEMS****/
+    inventoryFile.open(nameOfFile.c_str(), ios :: app | ios:: binary);
+    inventoryFile.write(reinterpret_cast<char*>(&addItem),sizeof(addItem));
+    inventoryFile.close();
+};
+
+void viewInventoryItems(fstream &inventoryfile,string nameOfFile) {
+    int count=1;
+    InventoryItem viewItem;
+    
+            /****OPENING FILE FOR VIEWING INVENTORY ITEMS****/
+    inventoryfile.open(nameOfFile.c_str(), ios :: in | ios::binary);
+    if(!inventoryfile)
+    {
+        cout<<"\nPlease add some inventory items to view them!\n";
+    }
+    else
+    {
+        inventoryfile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
+        while(inventoryfile)
+        {
+            cout<<"\n"<<"Inventory item "<<count<<" :\n";
+            cout<<"Name: "<<viewItem.Name;
+            cout<<"\nItem_ID: "<<viewItem.Item_ID;
+            cout<<"\nCategory: "<<viewItem.Category;
+            cout<<"\nItem_count: "<<viewItem.Item_count<<endl;
+            count++;
+            inventoryfile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
+        }
+    inventoryfile.close();
+    }
+};
 
 void searchInventoryItems() {};
 
