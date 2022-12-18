@@ -1,6 +1,6 @@
 #include <iostream>
-#include <conio.h>
 #include <fstream>
+#include <cstring>
 
 using namespace std;
 
@@ -20,12 +20,15 @@ struct InventoryItem
 
 void addInventoryItems(fstream &,string);
 void viewInventoryItems(fstream &,string);
-void searchInventoryItems();
-void editInventoryItems();
-void deleteInventoryItems();
+void searchInventoryItems(fstream &,string);
+void editInventoryItems(fstream &,string);
+void deleteInventoryItems(fstream &,string);
 void assignInventoryItems();
 void retrieveInventoryItems();
 void viewFacultyListofBorrowedItems();
+
+bool validationForEmptyFile(fstream &);
+bool validationForNULLItemId(const int&,string);
 
 int main()
 {
@@ -79,19 +82,19 @@ int main()
         /***SEARCH INVENTORY ITEMS***/
         case 3:
         {
-            searchInventoryItems();
+            searchInventoryItems(inventoryFile,nameOfFile);
             break;
         }
         /***EDIT INVENTORY ITEMS***/
         case 4:
         {
-            editInventoryItems();
+            editInventoryItems(inventoryFile,nameOfFile);
             break;
         }
         /***DELETE INVENTORY ITEMS***/
         case 5:
         {
-            deleteInventoryItems();
+            deleteInventoryItems(inventoryFile,nameOfFile);
             break;
         }
         /***ASSIGN INVENTORY ITEMS TO FACULTY MEMBERS***/
@@ -135,26 +138,29 @@ void addInventoryItems(fstream &inventoryFile,string nameOfFile)
     cout<<"\nEnter count of number new Inventory Items to add:";
     cin>>addItem.Item_count;
 
-            /****OPENING FILE FOR ADDING INVENTORY ITEMS****/
+    /****OPENING FILE FOR ADDING INVENTORY ITEMS****/
     inventoryFile.open(nameOfFile.c_str(), ios :: app | ios:: binary);
     inventoryFile.write(reinterpret_cast<char*>(&addItem),sizeof(addItem));
     inventoryFile.close();
 };
 
-void viewInventoryItems(fstream &inventoryfile,string nameOfFile) {
+void viewInventoryItems(fstream &inventoryFile,string nameOfFile)
+{
     int count=1;
     InventoryItem viewItem;
-    
-            /****OPENING FILE FOR VIEWING INVENTORY ITEMS****/
-    inventoryfile.open(nameOfFile.c_str(), ios :: in | ios::binary);
-    if(!inventoryfile)
+
+    /****OPENING FILE FOR VIEWING INVENTORY ITEMS****/
+    inventoryFile.open(nameOfFile.c_str(), ios :: in | ios::binary);
+    if(validationForEmptyFile(inventoryFile)==0)
     {
-        cout<<"\nPlease add some inventory items to view them!\n";
+        inventoryFile.close();
+        return;
     }
     else
     {
-        inventoryfile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
-        while(inventoryfile)
+        inventoryFile.seekg(0,ios::beg);
+        inventoryFile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
+        while(!inventoryFile.eof())
         {
             cout<<"\n"<<"Inventory item "<<count<<" :\n";
             cout<<"Name: "<<viewItem.Name;
@@ -162,20 +168,171 @@ void viewInventoryItems(fstream &inventoryfile,string nameOfFile) {
             cout<<"\nCategory: "<<viewItem.Category;
             cout<<"\nItem_count: "<<viewItem.Item_count<<endl;
             count++;
-            inventoryfile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
+            inventoryFile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
         }
-    inventoryfile.close();
     }
+    inventoryFile.close();
 };
 
-void searchInventoryItems() {};
+void searchInventoryItems(fstream &inventoryFile,string nameOfFile)
+{
+    char searchItemName[50];
+    InventoryItem searchItem;
 
-void editInventoryItems() {};
+    /****OPENING FILE FOR SEARCHING INVENTORY ITEMS****/
+    inventoryFile.open(nameOfFile.c_str(), ios :: in | ios::binary);
+    if(validationForEmptyFile(inventoryFile)==0)
+    {
+        inventoryFile.close();
+        return;
+    }
+    else
+    {
+        inventoryFile.seekg(0,ios::beg);
+        cout<<"\nEnter item name of item to search:";
+        cin.ignore();
+        cin.getline(searchItemName,50);
 
-void deleteInventoryItems() {};
+        inventoryFile.read(reinterpret_cast<char*>(&searchItem),sizeof(searchItem));
+        while(!inventoryFile.eof())
+        {
+            if(strcmp(searchItemName,searchItem.Name)==0)
+            {
+                cout<<"\nName: "<<searchItem.Name;
+                cout<<"\nItem_ID: "<<searchItem.Item_ID;
+                cout<<"\nCategory: "<<searchItem.Category;
+                cout<<"\nItem_count: "<<searchItem.Item_count<<endl;
+                break;
+            }
+            inventoryFile.read(reinterpret_cast<char*>(&searchItem),sizeof(searchItem));
+        }
+    }
+    inventoryFile.close();
+
+};
+
+void editInventoryItems(fstream &inventoryFile,string nameOfFile)
+{
+    int editItemID;
+    InventoryItem editItem,newItem;
+
+    /****OPENING FILE FOR EDITING INVENTORY ITEMS****/
+    inventoryFile.open(nameOfFile.c_str(),ios :: out | ios :: in | ios::binary);
+    if(validationForEmptyFile(inventoryFile)==0)
+    {
+        inventoryFile.close();
+        return;
+    }
+    else
+    {
+        inventoryFile.seekg(0,ios::beg);
+        cout<<"\nEnter item id of item to be edited:";
+        cin>>editItemID;
+        while(validationForNULLItemId(editItemID,nameOfFile)==0){
+            cout<<"\nItem ID not found!\n";
+            cout<<"\nEnter valid item id of item to be edited:";
+            cin>>editItemID;
+        }
+
+        inventoryFile.read(reinterpret_cast<char*>(&editItem),sizeof(editItem));
+        while(!inventoryFile.eof())
+        {
+            if(editItemID==editItem.Item_ID)
+            {
+                cout<<"\nEnter name to edit: ";
+                cin.ignore();
+                cin.getline(newItem.Name,50);
+                cout<<"Enter category to edit:";
+                cin.getline(newItem.Category,50);
+                cout<<"Enter count of item to edit:";
+                cin>>newItem.Item_count;
+                newItem.Item_ID=editItemID;
+                cout<<"\nEdited Successfully!\n";
+                inventoryFile.seekg(-sizeof(editItem),ios::cur);
+                inventoryFile.write(reinterpret_cast<char*>(&newItem),sizeof(newItem));
+                break;
+            }
+            inventoryFile.read(reinterpret_cast<char*>(&editItem),sizeof(editItem));
+        }
+    }
+    inventoryFile.close();
+
+};
+
+void deleteInventoryItems(fstream &inventoryFile,string nameOfFile)
+{
+    int deleteItemID;
+    InventoryItem deleteItem;
+
+    /****OPENING FILE FOR DELETING INVENTORY ITEMS****/
+    inventoryFile.open(nameOfFile.c_str(),ios :: out | ios :: in | ios::binary);
+    if(validationForEmptyFile(inventoryFile)==0)
+    {
+        inventoryFile.close();
+        return;
+    }
+    else
+    {
+        inventoryFile.seekg(0,ios::beg);
+        cout<<"\nEnter Item ID of inventory item to delete:";
+        cin>>deleteItemID;
+        while(validationForNULLItemId(deleteItemID,nameOfFile)==0){
+            cout<<"\nItem ID not found!\n";
+            cout<<"\nEnter valid item id of item to be deleted:";
+            cin>>deleteItemID;
+        }
+
+        /***Making a new FILE to replace it with old file with deleted item***/
+        ofstream updatedinventoryFile("xyz.txt",ios::binary);
+        inventoryFile.read(reinterpret_cast<char*>(&deleteItem),sizeof(deleteItem));
+        while(!inventoryFile.eof())
+        {
+            if(deleteItemID!=deleteItem.Item_ID)
+            {
+                updatedinventoryFile.write(reinterpret_cast<char*>(&deleteItem),sizeof(deleteItem));
+            }
+            inventoryFile.read(reinterpret_cast<char*>(&deleteItem),sizeof(deleteItem));
+        }
+        updatedinventoryFile.close();
+    }
+    cout<<"\nDeleted Successfully!\n";
+    inventoryFile.close();
+    remove(nameOfFile.c_str());
+    rename("xyz.txt",nameOfFile.c_str());
+
+};
 
 void assignInventoryItems() {};
 
 void retrieveInventoryItems() {};
 
 void viewFacultyListofBorrowedItems() {};
+
+///////////////*VALIDATION FUNCTIONS*//////////////
+bool validationForNULLItemId(const int &itemID,string nameOfFile){
+    InventoryItem temp;
+    ifstream file(nameOfFile.c_str(),ios :: in | ios::binary);
+    file.read(reinterpret_cast<char*>(&temp),sizeof(temp));
+    while(!file.eof())
+        {
+            if(itemID==temp.Item_ID)
+            {
+                file.close();
+                return 1;
+            }
+           file.read(reinterpret_cast<char*>(&temp),sizeof(temp));
+        }
+        file.close();
+        return 0;
+}
+bool validationForEmptyFile(fstream &inventoryFile)
+{
+    inventoryFile.seekg(0,ios::end);
+    if(!inventoryFile || inventoryFile.tellg()==0)  //check for empty file for
+    {
+        cout<<"\nPlease add some inventory items first!\n";
+        inventoryFile.seekg(0,ios::beg);
+        return 0;
+    }
+    return 1;
+}
