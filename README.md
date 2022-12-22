@@ -30,9 +30,9 @@ validationForWrongItemName:used in searchInventoryItems function to control wron
 Binary Input and Output Method has been used for data transfer from program to file.
 
 Libraries used:
-<iostream>
-<fstream>
-<cstring>
-<iomanip>
+iostream
+fstream
+cstring
+iomanip
 
 cstrings are used in structures instead of c++ string objects.
