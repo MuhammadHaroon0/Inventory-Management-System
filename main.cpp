@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-
+#include <iomanip>
 using namespace std;
 
 struct Allocated_to
@@ -29,9 +29,10 @@ void assignInventoryItems(fstream &,string);
 void retrieveInventoryItems(fstream &,string);
 void viewFacultyListofBorrowedItems(fstream &,string);
 
+bool validationForNegativeInput(const int &);
 bool validationForEmptyFile(fstream &);
-bool validationForNULLItemId(const int&,string);
-bool validationForNULLItemId(char [],string);
+bool validationForWrongItemId(const int&,string);
+bool validationForWrongItemName(char [],string);
 
 int main()
 {
@@ -124,8 +125,12 @@ int main()
     return 0;
 }
 
+///////////////////////////////////////////MAIN WORKING FUNCTIONS////////////////////////////////////////////
+
 void addInventoryItems(fstream &inventoryFile,string nameOfFile)
 {
+    /****OPENING FILE FOR ADDING INVENTORY ITEMS****/
+    inventoryFile.open(nameOfFile.c_str(), ios :: app | ios:: binary);
     InventoryItem addItem;
     cout<<"\nEnter Name of new Inventory Item:";
     cin.ignore();
@@ -133,20 +138,40 @@ void addInventoryItems(fstream &inventoryFile,string nameOfFile)
 
     cout<<"\nEnter Item ID of new Inventory Item:";
     cin>>addItem.Item_ID;
+    while(validationForNegativeInput(addItem.Item_ID)==1)
+    {
+        cout<<"\nEnter Valid Item ID!\n";
+        cout<<"\nEnter Item ID of new Inventory Item:";
+        cin>>addItem.Item_ID;
+    }
+
+    while(validationForWrongItemId(addItem.Item_ID,nameOfFile)==1)
+    {
+        cout<<"\nItem ID already present!\n";
+        cout<<"\nEnter unique item id of item to be added:";
+        cin>>addItem.Item_ID;
+    }
 
     cout<<"\nEnter category of new Inventory Item:";
     cin.ignore();
     cin.getline(addItem.Category,50);
 
-    cout<<"\nEnter count of number new Inventory Items to add:";
+    cout<<"\nEnter count of number of new Inventory Items to add:";
     cin>>addItem.Item_count;
+
+    while(validationForNegativeInput(addItem.Item_count)==1)
+    {
+        cout<<"\nEnter Valid Item Count!\n";
+        cout<<"\nEnter count of number of new Inventory Items to add:";
+        cin>>addItem.Item_count;
+    };
     addItem.lastCount=0;
-    cout<<addItem.lastCount;
-    /****OPENING FILE FOR ADDING INVENTORY ITEMS****/
-    inventoryFile.open(nameOfFile.c_str(), ios :: app | ios:: binary);
+
     inventoryFile.write(reinterpret_cast<char*>(&addItem),sizeof(addItem));
     inventoryFile.close();
+    cout<<"\nAdded Successfully!\n";
 };
+
 
 void viewInventoryItems(fstream &inventoryFile,string nameOfFile)
 {
@@ -164,19 +189,26 @@ void viewInventoryItems(fstream &inventoryFile,string nameOfFile)
     {
         inventoryFile.seekg(0,ios::beg);
         inventoryFile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
+        cout<<"____________________________________________________________________________________________\n";
+            cout<<"\n"<<left<<setw(20)<<"Inventory item"<<setw(20)<<"Name";
+            cout<<setw(20)<<"Item_ID"<<setw(20)<<"Category"<<setw(12)<<"Item_count"<<"|"<<endl;
         while(!inventoryFile.eof())
         {
-            cout<<"\n"<<"Inventory item "<<count<<" :\n";
-            cout<<"Name: "<<viewItem.Name;
-            cout<<"\nItem_ID: "<<viewItem.Item_ID;
-            cout<<"\nCategory: "<<viewItem.Category;
-            cout<<"\nItem_count: "<<viewItem.Item_count<<endl;
+            cout<<left<<setw(20)<<count;
+            cout<<setw(20)<<viewItem.Name;
+            cout<<setw(20)<<viewItem.Item_ID;
+            cout<<setw(20)<<viewItem.Category;
+            cout<<setw(12)<<viewItem.Item_count;
+            cout<<"|"<<endl;
             count++;
             inventoryFile.read(reinterpret_cast<char*>(&viewItem),sizeof(viewItem));
         }
     }
+            cout<<"____________________________________________________________________________________________";
+
     inventoryFile.close();
 };
+
 
 void searchInventoryItems(fstream &inventoryFile,string nameOfFile)
 {
@@ -197,7 +229,7 @@ void searchInventoryItems(fstream &inventoryFile,string nameOfFile)
         cin.ignore();
         cin.getline(searchItemName,50);
 
-        while(validationForNULLItemId(searchItemName,nameOfFile)==0)
+        while(validationForWrongItemName(searchItemName,nameOfFile)==0)
         {
             cout<<"\nItem not found!\n";
             cout<<"\nEnter valid item name of item to be searched:";
@@ -222,6 +254,7 @@ void searchInventoryItems(fstream &inventoryFile,string nameOfFile)
 
 };
 
+
 void editInventoryItems(fstream &inventoryFile,string nameOfFile)
 {
     int editItemID;
@@ -239,7 +272,7 @@ void editInventoryItems(fstream &inventoryFile,string nameOfFile)
         inventoryFile.seekg(0,ios::beg);
         cout<<"\nEnter item id of item to be edited:";
         cin>>editItemID;
-        while(validationForNULLItemId(editItemID,nameOfFile)==0)
+        while(validationForWrongItemId(editItemID,nameOfFile)==0)
         {
             cout<<"\nItem ID not found!\n";
             cout<<"\nEnter valid item id of item to be edited:";
@@ -258,7 +291,6 @@ void editInventoryItems(fstream &inventoryFile,string nameOfFile)
                 cin.getline(editItem.Category,50);
                 cout<<"Enter count of item to edit:";
                 cin>>editItem.Item_count;
-//                newItem.Item_ID=editItemID;
                 cout<<"\nEdited Successfully!\n";
                 inventoryFile.seekp(-1*sizeof(editItem),ios::cur);
                 inventoryFile.write(reinterpret_cast<char*>(&editItem),sizeof(editItem));
@@ -270,6 +302,7 @@ void editInventoryItems(fstream &inventoryFile,string nameOfFile)
     inventoryFile.close();
 
 };
+
 
 void deleteInventoryItems(fstream &inventoryFile,string nameOfFile)
 {
@@ -288,7 +321,7 @@ void deleteInventoryItems(fstream &inventoryFile,string nameOfFile)
         inventoryFile.seekg(0,ios::beg);
         cout<<"\nEnter Item ID of inventory item to delete:";
         cin>>deleteItemID;
-        while(validationForNULLItemId(deleteItemID,nameOfFile)==0)
+        while(validationForWrongItemId(deleteItemID,nameOfFile)==0)
         {
             cout<<"\nItem ID not found!\n";
             cout<<"\nEnter valid item id of item to be deleted:";
@@ -315,48 +348,65 @@ void deleteInventoryItems(fstream &inventoryFile,string nameOfFile)
 
 };
 
+
 void assignInventoryItems(fstream &inventoryFile,string nameOfFile)
 {
     bool flag=0;
     int assignItemID,assignFacultyID;
+    InventoryItem assignItem;
 
+    /****OPENING FILE FOR ADDING INVENTORY ITEMS****/
     inventoryFile.open(nameOfFile.c_str(),ios :: out | ios :: in | ios::binary);
     if(validationForEmptyFile(inventoryFile)==0)
     {
         inventoryFile.close();
         return;
     }
-    InventoryItem assignItem;
+
     cout<<"Enter ID of item to assign to faculty member:";
     cin>>assignItemID;
-    while(validationForNULLItemId(assignItemID,nameOfFile)==0)
+    while(validationForWrongItemId(assignItemID,nameOfFile)==0)
     {
         cout<<"\nItem ID not found!\n";
         cout<<"\nEnter valid item id of item to be assigned:";
         cin>>assignItemID;
     }
+
     cout<<"Enter ID of Faculty member to assign item:";
     cin>>assignFacultyID;
+    while(validationForNegativeInput(assignFacultyID)==1)
+    {
+        cout<<"\nEnter Valid Faculty ID!\n";
+        cout<<"Enter ID of Faculty member to assign item:";
+        cin>>assignFacultyID;
+    };
 
     inventoryFile.read(reinterpret_cast<char*>(&assignItem),sizeof(assignItem));
     while(!inventoryFile.eof())
     {
         if(assignItemID==assignItem.Item_ID)
         {
+            if(assignItem.Item_count<=0)  //cant assign if no more item left
+            {
+                cout<<"\nCannot Assign this Item, Don't Have anymore "<<assignItem.Name<<" left\n";
+                inventoryFile.close();
+                return;
+            }
             for(int i=0; i<assignItem.lastCount; i++)
             {
-                if(assignFacultyID==assignItem.Allocated_to[i].facultyId)
+                if(assignFacultyID==assignItem.Allocated_to[i].facultyId) //faculty member already present
                 {
                     assignItem.Item_count--;
                     assignItem.Allocated_to[i].numberOFItems++;
 
                     inventoryFile.seekp(-1*sizeof(assignItem),ios::cur);
                     inventoryFile.write(reinterpret_cast<char*>(&assignItem),sizeof(assignItem));
+                    cout<<"\nAssigned Successfully\n";
                     flag=1;
                     break;
                 }
             }
-            if(flag==0)
+            if(flag==0) //faculty member not already present
             {
                 cout<<"Enter Name of Faculty member to assign item:";
                 cin.ignore();
@@ -364,32 +414,35 @@ void assignInventoryItems(fstream &inventoryFile,string nameOfFile)
                 assignItem.Item_count--;
                 assignItem.Allocated_to[assignItem.lastCount].facultyId=assignFacultyID;
                 assignItem.Allocated_to[assignItem.lastCount].numberOFItems=1;
-                assignItem.lastCount++;
+                assignItem.lastCount++; //incrementing the array to assign next in next blank space
 
                 inventoryFile.seekp(-1*sizeof(assignItem),ios::cur);
                 inventoryFile.write(reinterpret_cast<char*>(&assignItem),sizeof(assignItem));
+                cout<<"\nAssigned Successfully\n";
             }
-                break;
+            break;
         }
         inventoryFile.read(reinterpret_cast<char*>(&assignItem),sizeof(assignItem));
     }
     inventoryFile.close();
 };
 
-void retrieveInventoryItems(fstream &inventoryFile,string nameOfFile) {
+
+void retrieveInventoryItems(fstream &inventoryFile,string nameOfFile)
+{
     bool flag=0;
     int retrieveItemID,retrieveFacultyID;
 
-    inventoryFile.open(nameOfFile.c_str(),ios :: out | ios :: in | ios::binary);
+    inventoryFile.open(nameOfFile.c_str(), ios :: in | ios::binary);
     if(validationForEmptyFile(inventoryFile)==0)
     {
         inventoryFile.close();
         return;
     }
-    InventoryItem retrieveItem,temp;
+    InventoryItem retrieveItem;
     cout<<"Enter ID of item to retrieve from faculty member:";
     cin>>retrieveItemID;
-    while(validationForNULLItemId(retrieveItemID,nameOfFile)==0)
+    while(validationForWrongItemId(retrieveItemID,nameOfFile)==0)
     {
         cout<<"\nItem ID not found!\n";
         cout<<"Enter ID of item to retrieve from faculty member:";
@@ -397,11 +450,18 @@ void retrieveInventoryItems(fstream &inventoryFile,string nameOfFile) {
     }
     cout<<"Enter ID of Faculty member to retrieve item:";
     cin>>retrieveFacultyID;
+    while(validationForNegativeInput(retrieveFacultyID)==1)
+    {
+        cout<<"\nEnter Valid Faculty ID!\n";
+        cout<<"Enter ID of Faculty member to retrieve item:";
+        cin>>retrieveFacultyID;
+    };
 
     ofstream updatedinventoryFile("xyz.txt",ios::binary);
     inventoryFile.read(reinterpret_cast<char*>(&retrieveItem),sizeof(retrieveItem));
     while(!inventoryFile.eof())
     {
+        flag=0;
         if(retrieveItemID==retrieveItem.Item_ID)
         {
             for(int i=0; i<retrieveItem.lastCount; i++)
@@ -410,12 +470,14 @@ void retrieveInventoryItems(fstream &inventoryFile,string nameOfFile) {
                 {
                     retrieveItem.Item_count+=retrieveItem.Allocated_to[i].numberOFItems;
                     retrieveItem.lastCount--;
-                    strcpy(temp.Name,retrieveItem.Name);
-                    strcpy(temp.Category,retrieveItem.Category);
-                    temp.Item_count=retrieveItem.Item_count;
-                    temp.Item_ID=retrieveItem.Item_ID;
-                    temp.lastCount=retrieveItem.lastCount;
+                    for(int j=i;j<retrieveItem.lastCount;j++){
+                        strcpy(retrieveItem.Allocated_to[j].name,retrieveItem.Allocated_to[j+1].name);
+                    retrieveItem.Allocated_to[j].numberOFItems=retrieveItem.Allocated_to[j+1].numberOFItems;
+                    retrieveItem.Allocated_to[j].facultyId=retrieveItem.Allocated_to[j+1].facultyId;
+                    }
                     flag=1;
+                    updatedinventoryFile.write(reinterpret_cast<char*>(&retrieveItem),sizeof(retrieveItem));
+                    cout<<"\nRetrieved Successfully!\n";
                     break;
                 }
             }
@@ -424,16 +486,18 @@ void retrieveInventoryItems(fstream &inventoryFile,string nameOfFile) {
                 cout<<"\nFaculty Member already not assigned with this item!\n";
             }
         }
+        if(flag==0)
+        {
+            updatedinventoryFile.write(reinterpret_cast<char*>(&retrieveItem),sizeof(retrieveItem));
+        }
         inventoryFile.read(reinterpret_cast<char*>(&retrieveItem),sizeof(retrieveItem));
     }
+    inventoryFile.close();
     updatedinventoryFile.close();
-    inventoryFile.close();
-    cout<<"\nRetrieved Successfully Successfully!\n";
-    inventoryFile.close();
     remove(nameOfFile.c_str());
     rename("xyz.txt",nameOfFile.c_str());
-
 };
+
 
 void viewFacultyListofBorrowedItems(fstream &inventoryFile,string nameOfFile)
 {
@@ -448,9 +512,10 @@ void viewFacultyListofBorrowedItems(fstream &inventoryFile,string nameOfFile)
     inventoryFile.read(reinterpret_cast<char*>(&viewFacultyList),sizeof(viewFacultyList));
     while(!inventoryFile.eof())
     {
-        for(int i=0; i<viewFacultyList.lastCount; i++)
+
+        if(viewFacultyList.lastCount>0)
         {
-            if(viewFacultyList.lastCount>0)
+            for(int i=0; i<viewFacultyList.lastCount; i++)
             {
 
                 cout<<"\nName of item: "<<viewFacultyList.Name;
@@ -458,8 +523,8 @@ void viewFacultyListofBorrowedItems(fstream &inventoryFile,string nameOfFile)
                 cout<<"\nFaculty ID: "<<viewFacultyList.Allocated_to[i].facultyId;
                 cout<<"\nNumber of items: "<<viewFacultyList.Allocated_to[i].numberOFItems;
                 flag=1;
+                cout<<"\n";
             }
-            cout<<"\n";
         }
         inventoryFile.read(reinterpret_cast<char*>(&viewFacultyList),sizeof(viewFacultyList));
     }
@@ -471,8 +536,18 @@ void viewFacultyListofBorrowedItems(fstream &inventoryFile,string nameOfFile)
 
 };
 
-///////////////*VALIDATION FUNCTIONS*//////////////
-bool validationForNULLItemId(const int &itemID,string nameOfFile)
+/////////////////////////////////////////////*VALIDATION FUNCTIONS*///////////////////////////////////////////////
+bool validationForNegativeInput(const int &input)
+{
+    if(input<=0)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+
+bool validationForWrongItemId(const int &itemID,string nameOfFile)
 {
     InventoryItem temp;
     ifstream file(nameOfFile.c_str(),ios :: in | ios::binary);
@@ -489,7 +564,9 @@ bool validationForNULLItemId(const int &itemID,string nameOfFile)
     file.close();
     return 0;
 }
-bool validationForNULLItemId(char str[],string nameOfFile)
+
+
+bool validationForWrongItemName(char str[],string nameOfFile)
 {
     InventoryItem temp;
     ifstream file(nameOfFile.c_str(),ios :: in | ios::binary);
@@ -506,6 +583,8 @@ bool validationForNULLItemId(char str[],string nameOfFile)
     file.close();
     return 0;
 }
+
+
 bool validationForEmptyFile(fstream &inventoryFile)
 {
     inventoryFile.seekg(0,ios::end);
